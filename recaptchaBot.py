@@ -11,6 +11,17 @@ def wait_between(a,b):
 	rand = uniform(a, b) 
 	sleep(rand)
 
+# Cycle through all the expected conditions
+class AnyEc:
+    def __init__(self, *args):
+        self.ecs = args
+    def __call__(self, driver):
+        for fn in self.ecs:
+            try:
+                if fn(driver): return True
+            except:
+                pass
+
 projectRoot = os.path.dirname(os.path.realpath(__file__))
 
 # Place the geckodriver in the project root
@@ -42,12 +53,9 @@ driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[1])
 # Wait 5 seconds for presence of either the 3x3 or the 4x4 image
 # to load failing which try to submit (verified cookie case)
 try:
-	imageCaptcha = WebDriverWait(driver, 5).until( AnyEc(
+	imageCaptcha = WebDriverWait(driver, 10).until( AnyEc(
 		EC.presence_of_element_located(
 			(By.XPATH, '//*[@class="rc-image-tile-33"]')
-		),
-		EC.presence_of_element_located(
-			(By.XPATH, '//*[@class="rc-image-tile-44"]')
 		)
 	))
 except:
