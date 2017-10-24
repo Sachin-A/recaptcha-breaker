@@ -44,20 +44,46 @@ wait_between(0.5, 0.7)
 
 checkBox.click()
 
-# Move out of iFrame to main window
-driver.switch_to.default_content();
 
-# Move into the second iFrame (image captcha)
-driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[1])
+while(1):
 
-# Wait 5 seconds for presence of either the 3x3 or the 4x4 image
-# to load failing which try to submit (verified cookie case)
-try:
-	imageCaptcha = WebDriverWait(driver, 10).until( AnyEc(
-		EC.presence_of_element_located(
-			(By.XPATH, '//*[@class="rc-image-tile-33"]')
-		)
-	))
-except:
+	# Move out of iFrame to main window
 	driver.switch_to.default_content();
-	driver.find_element_by_id("recaptcha-demo-submit").click()
+
+	# Move into the second iFrame (image captcha)
+	driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[1])
+	
+	# Wait 5 seconds for presence of either the 3x3 or the 4x4 image
+	# to load failing which try to submit (verified cookie case)
+	try:
+		print "Waiting for image captcha"
+		imageCaptcha = WebDriverWait(driver, 10).until( AnyEc(
+			EC.presence_of_element_located(
+				(By.XPATH, '//*[@class="rc-image-tile-33"]')
+			),
+			EC.presence_of_element_located(
+				(By.XPATH, '//*[@class="rc-image-tile-44"]')
+			)
+		))
+	except:
+		print "Presence of image captcha undetected. Proceeding."
+		driver.switch_to.default_content();
+		driver.find_element_by_id("recaptcha-demo-submit").click()
+	
+	images = driver.find_elements_by_tag_name("img")
+	
+	for id, i in enumerate(images):
+		WebDriverWait(driver, 10).until( AnyEc(
+			EC.presence_of_element_located(
+				(By.XPATH, '//*[@class="rc-image-tile-33"]')
+			),
+			EC.presence_of_element_located(
+				(By.XPATH, '//*[@class="rc-image-tile-44"]')
+			)
+		))
+		i.click()
+		print "Image no: ", id
+		if (id > 1):
+			print "Trying to pass current challenge"
+			driver.find_element_by_id("recaptcha-verify-button").click()
+			break
