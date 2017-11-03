@@ -2,8 +2,11 @@ import os
 import random
 from time import sleep, time
 from selenium import webdriver
+from PIL import Image
 import selenium.common.exceptions as e
 from selenium.webdriver.common.by import By
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -12,16 +15,32 @@ def wait_between(a,b):
 	rand = random.uniform(a, b)
 	sleep(rand)
 
+def download_image(driver, element, path):
+	loc = element.location
+	size = element.size
+
+	driver.save_screenshot(path)
+
+	image = Image.open(path)
+
+	left = int(loc['x'])
+	top = int(loc['y'])
+	right = int(loc['x'] + size['width'])
+	bottom = int(loc['y'] + size['height'])
+	image = image.crop((left, top, right, bottom))
+
+	image.save(path, 'png')
+
 # Cycle through all the expected conditions
 class AnyEc:
-    def __init__(self, *args):
-        self.ecs = args
-    def __call__(self, driver):
-        for fn in self.ecs:
-            try:
-                if fn(driver): return True
-            except:
-                pass
+	def __init__(self, *args):
+		self.ecs = args
+	def __call__(self, driver):
+		for fn in self.ecs:
+			try:
+				if fn(driver): return True
+			except:
+				pass
 
 projectRoot = os.path.dirname(os.path.realpath(__file__))
 
@@ -45,11 +64,15 @@ wait_between(0.5, 0.7)
 
 checkBox.click()
 
+# actionChains = ActionChains(driver)
+
 # Move out of iFrame to main window
 driver.switch_to.default_content();
 
 # Move into the second iFrame (image captcha)
 driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[1])
+
+challengeNumber = 0
 
 while(1):
 
@@ -86,6 +109,18 @@ while(1):
 		print "Image no: ", x
 		theChosenOne = candidateImages[x]
 
+		if(i == 0):
+			download_image(driver, candidateImages[0], "images/" + str(challengeNumber) + ".png")
+			wait_between(2, 3)
+
+		# actionChains.context_click(driver.find_elements_by_class_name("rc-image-tile-wrapper")[0]) \
+		# .send_keys(Keys.ARROW_DOWN) \
+		# .send_keys(Keys.ARROW_DOWN) \
+		# .send_keys(Keys.ARROW_DOWN) \
+		# .send_keys(Keys.ARROW_DOWN) \
+		# .send_keys(Keys.RETURN) \
+		# .perform()
+
 		# Handle stale element in the short span between
 		# finding element and clicking on it
 		try:
@@ -106,3 +141,5 @@ while(1):
 			print "Clicking on verify!"
 			driver.find_element_by_id("recaptcha-verify-button").click()
 			break
+
+	challengeNumber+=1;

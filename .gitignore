@@ -1,3 +1,9 @@
+# folders
+images/
+
+# drivers
 chromedriver
 geckodriver
+
+#log files
 *.log
