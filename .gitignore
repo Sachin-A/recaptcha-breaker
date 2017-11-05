@@ -5,5 +5,8 @@ images/
 chromedriver
 geckodriver
 
-#log files
+# log files
 *.log
+
+# compilation files
+*.pyc
