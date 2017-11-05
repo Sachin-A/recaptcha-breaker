@@ -4,6 +4,7 @@ import random
 from PIL import Image
 from time import sleep, time
 from selenium import webdriver
+from operator import itemgetter
 from imageAnnotation import gris, sss
 import selenium.common.exceptions as e
 from selenium.webdriver.common.by import By
@@ -79,10 +80,12 @@ projectRoot = os.path.dirname(os.path.realpath(__file__))
 # Place the geckodriver in the project root
 driver = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
 
+driver2 = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
+
 url='https://www.google.com/recaptcha/api2/demo'
 
 driver.get(url)
-driver.maximize_window()
+# driver.maximize_window()
 
 # Move into the first iFrame (checkbox)
 driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[0])
@@ -106,6 +109,9 @@ driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[1])
 
 challengeNumber = 0
 
+if not os.path.exists(projectRoot + '/images') :
+	os.makedirs(projectRoot + '/images')
+
 while(1):
 
 	# Wait for presence of either the 3x3 or the 4x4 challenge
@@ -120,48 +126,50 @@ while(1):
 		print "Found!"
 	except:
 		print "Presence of image captcha undetected. Proceeding."
-		driver.switch_to.default_content();
+		driver.switch_to.default_content()
 		driver.find_element_by_id("recaptcha-demo-submit").click()
-	
+		print "Success!"
+		break
+
 	# Wait till previous challenge images are deleted and
 	# the new ones are added to dom
 	wait_between(2, 3)
 
 	hint = driver.find_elements_by_tag_name("strong")[0].text
+
 	# Gather all the img web elements in the challenge iframe only
 	candidateImages = driver.find_elements_by_tag_name("img")
 	numRows = int(math.sqrt(len(candidateImages)))
 	# print "NumRows: ", numRows
-	randomIds = random.sample(range(len(candidateImages)), 3)
+	# randomIds = random.sample(range(len(candidateImages)), 3)
 
-	for i in range(len(randomIds)):
+	print "Hint provided: ", hint
+
+	download_image(driver, candidateImages[0], "images/" + str(challengeNumber) + ".png", numRows)
+
+	tags = []
+	scores = []
+
+	for j in range(len(candidateImages)):
+
+		tilepath = projectRoot + "/images/" + str(challengeNumber) + "_" + str(j) + ".png"
+
+		tags.append(gris(driver2, tilepath))
+		print "Search result: ", tags[j]
+
+		scores.append([j, sss(hint, tags[j])])
+		print "Similarity score: ", scores[j][1]
+
+	scores = sorted(scores, key = itemgetter(1), reverse=True)
+	print scores
+
+	for i, score in enumerate(scores):
 
 		# Browser refresh between clicks results in stale elements so
 		# update img WebElements between clicks
 		candidateImages = driver.find_elements_by_tag_name("img")
 
-		x = randomIds[i]
-		print "Image no: ", x
-		theChosenOne = candidateImages[x]
-
-		if(i == 0):
-			print hint
-			download_image(driver, candidateImages[0], "images/" + str(challengeNumber) + ".png", numRows)
-			wait_between(9, 10)
-			tags = []
-			for j in range(len(candidateImages)):
-				tilepath = projectRoot + "/images/" + str(challengeNumber) + "_" + str(j) + ".png"
-				tags.append(gris(driver, tilepath))
-				print tags[j]
-				print "Similarity: ", sss(hint, tags[j])
-
-		# actionChains.context_click(driver.find_elements_by_class_name("rc-image-tile-wrapper")[0]) \
-		# .send_keys(Keys.ARROW_DOWN) \
-		# .send_keys(Keys.ARROW_DOWN) \
-		# .send_keys(Keys.ARROW_DOWN) \
-		# .send_keys(Keys.ARROW_DOWN) \
-		# .send_keys(Keys.RETURN) \
-		# .perform()
+		theChosenOne = candidateImages[score[0]]
 
 		# Handle stale element in the short span between
 		# finding element and clicking on it
@@ -172,13 +180,13 @@ while(1):
 		except e.StaleElementReferenceException:
 			print "2nd try"
 			candidateImages = driver.find_elements_by_tag_name("img")
-			theChosenOne = candidateImages[x]
+			theChosenOne = candidateImages[score[0]]
 			theChosenOne.find_element_by_xpath('..').click()
 
 		wait_between(0.5, 0.7)
 
 		# Click on verify after 3 selections
-		if (i == 2):
+		if (i == numRows - 1):
 			print "Trying to pass current challenge"
 			print "Clicking on verify!"
 			driver.find_element_by_id("recaptcha-verify-button").click()

@@ -5,9 +5,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+grisUrl="https://images.google.com"
+
 def gris(driver, filepath):
 
-	driver.get("https://images.google.com")
+	driver.get(grisUrl)
 
 	# Click on file upload icon
 	driver.find_element_by_id("qbi").click()
@@ -16,11 +18,14 @@ def gris(driver, filepath):
 	driver.find_element_by_id("qbfile").send_keys(filepath)
 
 	# Wait for search to complete and suggestion to appear
-	WebDriverWait(driver, 10).until(
-		EC.presence_of_element_located(
-			(By.CLASS_NAME, '_gUb')
+	try:
+		WebDriverWait(driver, 20).until(
+			EC.presence_of_element_located(
+				(By.CLASS_NAME, '_gUb')
+			)
 		)
-	)
+	except:
+		return "$"
 
 	return driver.find_elements_by_class_name("_gUb")[0].text
 
