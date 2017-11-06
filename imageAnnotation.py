@@ -10,6 +10,8 @@ grisUrl="https://images.google.com"
 def gris(args):
         driver = args[0]
         filepath = args[1]
+        if os.path.isfile(filepath):
+            return "z"
 
 	driver.get(grisUrl)
 
@@ -27,7 +29,7 @@ def gris(args):
 			)
 		)
 	except:
-		return "$"
+		return "z"
 
 	return driver.find_elements_by_class_name("_gUb")[0].text
 
