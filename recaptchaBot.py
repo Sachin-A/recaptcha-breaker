@@ -22,6 +22,23 @@ def wait_between(a,b):
 	rand = random.uniform(a, b)
 	sleep(rand)
 
+def download_single(driver, element, path, numRows):
+	loc = element.location
+	size = element.size
+
+	driver.save_screenshot(path)
+	image = Image.open(path)
+
+	w = size['width']
+	h = size['height']
+	left = int(loc['x'])
+	top = int(loc['y'])
+	right = int(loc['x'] + w)
+	bottom = int(loc['y'] + h)
+	image = image.crop((left, top, right, bottom))
+	image.save(path, 'png')
+
+
 def download_image(driver, element, path, numRows):
 	loc = element.location
 	size = element.size
