@@ -5,7 +5,7 @@ from PIL import Image
 from time import sleep, time
 from selenium import webdriver
 from operator import itemgetter
-from imageAnnotation import gris, sss
+from imageAnnotation import *
 import selenium.common.exceptions as e
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
@@ -14,7 +14,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from multiprocessing.dummy import Pool as ThreadPool
-poolSize = 3
+poolSize = 2
 pool = ThreadPool(poolSize)
 
 # Sleeps for a random period between a and b
@@ -101,7 +101,7 @@ projectRoot = os.path.dirname(os.path.realpath(__file__))
 # Place the geckodriver in the project root
 driver = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
 
-drivers = []
+drivers = [] #[1]*poolSize
 for i in range(poolSize):
     drivers.append(webdriver.Firefox(executable_path = projectRoot + "/geckodriver"))
 
@@ -176,7 +176,7 @@ while(1):
 
 	download_image(driver, candidateImages[0], "images/" + str(challengeNumber) + ".png", numRows)
 
-	tags = []
+	#tags = []
 	scores = []
 
 	for j in range(len(candidateImages)):
@@ -191,25 +191,27 @@ while(1):
                     tilepaths.append(projectRoot + "/images/" + str(challengeNumber) + "_" + str(j+t) + ".png")
                     tmpSolved.append(solved_cache[j+t])
 
-                args = zip(drivers, tilepaths, tmpSolved)
+                args = zip(drivers, tilepaths, tmpSolved, [hint]*len(drivers))
                 results = pool.map(gris, args)
 
                 for t in range(poolSize):
                     if j+t>=15:
                         break
-                    solved_cache[j+t] = results[t]
+                    solved_cache[j+t] = results[t][0]
+                    scores[j+t] = results[t][1]
+                    print "Search result: ", solved_cache[j+t], scores[j+t]
 
-		tags.extend(results)
-                for t in range(poolSize):
-                    if j+t>=15:
-                        break
-                    print "Search result: ", tags[j+t]
+		#tags.extend(results)
+                #for t in range(poolSize):
+                #    if j+t>=15:
+                #        break
+                #    print "Search result: ", tags[j+t]
 
-                for t in range(poolSize):
-                    if j+t>=15:
-                        break
-                    scores.append([j+t, sss(hint, tags[j+t])])
-                    print "Similarity score: ", scores[j+t][1]
+                #for t in range(poolSize):
+                #    if j+t>=15:
+                #        break
+                #    scores.append([j+t, sss(hint, tags[j+t])])
+                #    print "Similarity score: ", scores[j+t][1]
 
 	scores = sorted(scores, key = itemgetter(1), reverse=True)
 	print scores
@@ -247,7 +249,7 @@ while(1):
 		wait_between(0.5, 0.7)
 
 		# Click on verify after 3 selections
-		if (i == numRows - 1 and challenge_type != "images") or (challenge_type == "images" and min([x[1] for x in scores]) < 0.01):
+		if (i == numRows - 1 and challenge_type != "images") or (challenge_type == "images" and max([x[1] for x in scores]) < 0.01):
 			print "Trying to pass current challenge"
 			print "Clicking on verify!"
 			driver.find_element_by_id("recaptcha-verify-button").click()

@@ -13,6 +13,8 @@ grisUrl="https://images.google.com"
 def gris(args):
 	driver = args[0]
 	filepath = args[1]
+        hint = args[2]
+
 	if not os.path.isfile(filepath):
 		return "z"
 
@@ -34,12 +36,16 @@ def gris(args):
 	except:
 		return "z"
 
-	return driver.find_elements_by_class_name("_gUb")[0].text
+	tag = driver.find_elements_by_class_name("_gUb")[0].text
+        score = sss(hint, tag)
+        return (tag, score)
 
 def clarifai(args):
 
 	driver = args[0]
 	filepath = args[1]
+        hint = args[2]
+
 	app = ClarifaiApp(api_key=keys['clarifai_key'])
 	model = app.models.get("general-v1.3")
 
@@ -49,10 +55,14 @@ def clarifai(args):
 	tags = ''
 
 	for x in response['outputs'][0]['data']['concepts']:
-		tags += ' '
-		tags += x
+            print x
+	    tags += ' '
+	    tags += x['name']
 
-	return tags
+	#return tags
+	#tags = driver.find_elements_by_class_name("_gUb")[0].text
+        score = sss(hint, tags)
+        return (tags, score)
 
 sss_url = "http://swoogle.umbc.edu/SimService/GetSimilarity"
 
