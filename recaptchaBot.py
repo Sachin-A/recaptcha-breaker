@@ -14,7 +14,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from multiprocessing.dummy import Pool as ThreadPool
-pool = ThreadPool(2)
+poolSize = 3
+pool = ThreadPool(poolSize)
 
 # Sleeps for a random period between a and b
 def wait_between(a,b):
@@ -83,8 +84,9 @@ projectRoot = os.path.dirname(os.path.realpath(__file__))
 # Place the geckodriver in the project root
 driver = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
 
-driver2 = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
-driver3 = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
+drivers = []
+for i in range(poolSize):
+    drivers.append(webdriver.Firefox(executable_path = projectRoot + "/geckodriver"))
 
 url='https://www.google.com/recaptcha/api2/demo'
 
@@ -155,24 +157,23 @@ while(1):
 	scores = []
 
 	for j in range(len(candidateImages)):
-                if j % 2 == 1:
+                if j % poolSize != 0:
                     continue
 
-		tilepath1 = projectRoot + "/images/" + str(challengeNumber) + "_" + str(j) + ".png"
-		tilepath2 = projectRoot + "/images/" + str(challengeNumber) + "_" + str(j+1) + ".png"
+                tilepaths = []
+                for t in range(poolSize):
+                    tilepaths.append(projectRoot + "/images/" + str(challengeNumber) + "_" + str(j+t) + ".png")
 
-                args = [ [ driver2, tilepath1 ], [ driver3,tilepath2] ]
+                args = zip(drivers, tilepaths)
                 results = pool.map(gris, args)
 
-		tags.append(results[0])
-		tags.append(results[1])
-		print "Search result: ", tags[j]
-		print "Search result: ", tags[j+1]
+		tags.extend(results)
+                for t in range(poolSize):
+                    print "Search result: ", tags[j+t]
 
-		scores.append([j, sss(hint, tags[j])])
-		scores.append([j+1, sss(hint, tags[j+1])])
-		print "Similarity score: ", scores[j][1]
-		print "Similarity score: ", scores[j+1][1]
+                for t in range(poolSize):
+                    scores.append([j+t, sss(hint, tags[j+t])])
+                    print "Similarity score: ", scores[j+t][1]
 
 	scores = sorted(scores, key = itemgetter(1), reverse=True)
 	print scores
