@@ -7,7 +7,9 @@ from selenium.webdriver.support import expected_conditions as EC
 
 grisUrl="https://images.google.com"
 
-def gris(driver, filepath):
+def gris(args):
+        driver = args[0]
+        filepath = args[1]
 
 	driver.get(grisUrl)
 

@@ -1,3 +1,2 @@
-PIL==1.1.7
 requests==2.18.4
 selenium==3.6.0

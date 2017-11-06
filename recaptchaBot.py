@@ -13,6 +13,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from multiprocessing.dummy import Pool as ThreadPool
+pool = ThreadPool(2)
+
 # Sleeps for a random period between a and b
 def wait_between(a,b):
 	rand = random.uniform(a, b)
@@ -45,8 +48,8 @@ def download_image(driver, element, path, numRows):
 	# print "Tile width: ",  tWidth
 	# print "Tile height: ",  tHeight
 
-	for i in range(numRows):
-		for j in range(numRows):
+	for j in range(numRows):
+		for i in range(numRows):
 
 			# print "x-min: ", int(i * tWidth)
 			# print "y-min: ", int(j * tHeight)
@@ -81,6 +84,7 @@ projectRoot = os.path.dirname(os.path.realpath(__file__))
 driver = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
 
 driver2 = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
+driver3 = webdriver.Firefox(executable_path = projectRoot + "/geckodriver")
 
 url='https://www.google.com/recaptcha/api2/demo'
 
@@ -93,7 +97,7 @@ driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[0])
 # Wait for checkbox to load
 checkBox = WebDriverWait(driver, 10).until(
 		EC.presence_of_element_located((By.ID ,"recaptcha-anchor"))
-		) 
+		)
 
 wait_between(0.5, 0.7)
 
@@ -151,14 +155,24 @@ while(1):
 	scores = []
 
 	for j in range(len(candidateImages)):
+                if j % 2 == 1:
+                    continue
 
-		tilepath = projectRoot + "/images/" + str(challengeNumber) + "_" + str(j) + ".png"
+		tilepath1 = projectRoot + "/images/" + str(challengeNumber) + "_" + str(j) + ".png"
+		tilepath2 = projectRoot + "/images/" + str(challengeNumber) + "_" + str(j+1) + ".png"
 
-		tags.append(gris(driver2, tilepath))
+                args = [ [ driver2, tilepath1 ], [ driver3,tilepath2] ]
+                results = pool.map(gris, args)
+
+		tags.append(results[0])
+		tags.append(results[1])
 		print "Search result: ", tags[j]
+		print "Search result: ", tags[j+1]
 
 		scores.append([j, sss(hint, tags[j])])
+		scores.append([j+1, sss(hint, tags[j+1])])
 		print "Similarity score: ", scores[j][1]
+		print "Similarity score: ", scores[j+1][1]
 
 	scores = sorted(scores, key = itemgetter(1), reverse=True)
 	print scores
