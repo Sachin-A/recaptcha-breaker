@@ -82,7 +82,7 @@ def download_image(driver, element, path, numRows):
 				)
 			)
 			tile = tile.resize((int(w), int(h)), 1)
-			tilepath = os.path.splitext(path)[0] + "_" + str(i * numRows + j) + ".png"
+			tilepath = os.path.splitext(path)[0] + "_" + str(j * numRows + i) + ".png"
 			tile.save(tilepath, 'png')
 
 # Cycle through all the expected conditions
@@ -132,6 +132,9 @@ driver.switch_to.frame(driver.find_elements_by_tag_name("iframe")[1])
 
 challengeNumber = 0
 
+challenge_type = "squares" # squares or images
+solved_cache = [False]*16
+
 if not os.path.exists(projectRoot + '/images') :
 	os.makedirs(projectRoot + '/images')
 
@@ -168,6 +171,9 @@ while(1):
 
 	print "Hint provided: ", hint
 
+        if driver.find_elements_by_tag_name("html")[0].text.find("Select all images with") != -1:
+            challenge_type = "images"
+
 	download_image(driver, candidateImages[0], "images/" + str(challengeNumber) + ".png", numRows)
 
 	tags = []
@@ -178,17 +184,30 @@ while(1):
                     continue
 
                 tilepaths = []
+                tmpSolved = []
                 for t in range(poolSize):
+                    if j+t>=15:
+                        break
                     tilepaths.append(projectRoot + "/images/" + str(challengeNumber) + "_" + str(j+t) + ".png")
+                    tmpSolved.append(solved_cache[j+t])
 
-                args = zip(drivers, tilepaths)
+                args = zip(drivers, tilepaths, tmpSolved)
                 results = pool.map(gris, args)
+
+                for t in range(poolSize):
+                    if j+t>=15:
+                        break
+                    solved_cache[j+t] = results[t]
 
 		tags.extend(results)
                 for t in range(poolSize):
+                    if j+t>=15:
+                        break
                     print "Search result: ", tags[j+t]
 
                 for t in range(poolSize):
+                    if j+t>=15:
+                        break
                     scores.append([j+t, sss(hint, tags[j+t])])
                     print "Similarity score: ", scores[j+t][1]
 
@@ -208,20 +227,32 @@ while(1):
 		try:
 			print "1st try"
 			theChosenOne.find_element_by_xpath('..').click()
+                        if challenge_type == "images":
+                            wait_between(1, 1.5)
+                            candidateImages = driver.find_elements_by_tag_name("img")
+                            download_single(driver, candidateImages[i], "images/" + str(challengeNumber) + "_" + str(i) + ".png", numRows)
+                            solved_cache[i] = False
 
 		except e.StaleElementReferenceException:
 			print "2nd try"
 			candidateImages = driver.find_elements_by_tag_name("img")
 			theChosenOne = candidateImages[score[0]]
 			theChosenOne.find_element_by_xpath('..').click()
+                        if challenge_type == "images":
+                            wait_between(1, 1.5)
+                            candidateImages = driver.find_elements_by_tag_name("img")
+                            download_single(driver, candidateImages[i], "images/" + str(challengeNumber) + "_" + str(i) + ".png", numRows)
+                            solved_cache[i] = False
 
 		wait_between(0.5, 0.7)
 
 		# Click on verify after 3 selections
-		if (i == numRows - 1):
+		if (i == numRows - 1 and challenge_type != "images") or (challenge_type == "images" and min([x[1] for x in scores]) < 0.01):
 			print "Trying to pass current challenge"
 			print "Clicking on verify!"
 			driver.find_element_by_id("recaptcha-verify-button").click()
+                        #if challenge_type != "images":
+                        solved_cache = [False]*16
 			break
 
 	challengeNumber+=1;
