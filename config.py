@@ -1,0 +1,3 @@
+keys = {
+	'clarifai_key' : ''
+}
